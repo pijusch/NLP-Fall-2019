@@ -1,67 +1,78 @@
 import sys
-
+from input_transE import input_transe
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
+from torch.autograd import Variable
+from torch.utils.data import DataLoader, TensorDataset
 from input_transE import input_transe
 
 class TransE(nn.Module):
-    def __init__(self, X, Y, VOCAB_SIZE, DIM_EMB=10, NUM_CLASSES=2):
+    def __init__(self, data, DIM_EMB=100):
         super(TransE, self).__init__()
-        (self.VOCAB_SIZE, self.DIM_EMB, self.NUM_CLASSES) = (VOCAB_SIZE, DIM_EMB, NUM_CLASSES)
-        self.embedding = nn.Embedding(self.VOCAB_SIZE, self.DIM_EMB)
-        self.linear1 = nn.Linear(self.DIM_EMB,2)
-        self.softmax = nn.Softmax(dim=0)
+        self.num_ent = len(data.ent_dic)
+        self.num_rel = len(data.rel_dic)
+        self.ent_embedding = nn.Embedding(len(data.ent_dic),DIM_EMB)
+        self.rel_embedding = nn.Embedding(len(data.rel_dic),DIM_EMB)
+        self.embeddings = [self.ent_embedding, self.rel_embedding]
 
-        #TODO: Initialize parameters.
-        nn.init.xavier_uniform_(self.embedding.weight)
-        nn.init.xavier_uniform_(self.linear1.weight)
+    def normalize_embeddings(self):
+        for e in self.embeddings:
+            e.weight.data.renorm(p=2,dim=0,maxnorm=1)
+    
+    def intialize_embeddings(self):
+        r = 6/np.sqrt(self.entity_dimensions)
+        for e in self.embeddings:
+            e.weight.data.uniform_(-r, r)
+        self.normalize_embeddings()
 
+    def forward(self,subjects,objects,relations):
+        sub = self.ent_embedding(subjects)
+        obj = self.ent_embedding(objects)
+        rel = self.rel_embedding(relations)
+        score = torch.sum(sub+rel-obj,-1)
+        return score.view(-1,1)
 
-    def forward(self, X, train=False):
-        #TODO: Implement forward computation.
-        return self.softmax(torch.sigmoid(self.linear1(torch.sigmoid(torch.mean(self.embedding(X),dim=0)))))
+def transe_epoch(spo):
+    s, o, p = torch.chunk(spo, 3, dim=1)
+    no = torch.LongTensor(np.random.randint(0, model.num_ent, o.size(0))).view(-1,1)
+    ns = torch.LongTensor(np.random.randint(0, model.num_ent, s.size(0))).view(-1,1)
+    criterion = lambda pos, neg: torch.sum(torch.max(Variable(zero), 1.0 - pos + neg))
+    
+    optimizer.zero_grad()
+    pos_score = model(Variable(s),Variable(o),Variable(p))
+    neg_score = model(Variable(s),Variable(no),Variable(p))
+    loss = criterion(pos_score,neg_score)
+    loss.backward()
+    optimizer.step()
 
-def Eval_TransE(X, Y, mlp):
-    num_correct = 0
-    for i in range(len(X)):
-        logProbs = mlp.forward(X[i], train=False)
-        pred = torch.argmax(logProbs)
-        if pred == Y[i]:
-            num_correct += 1
-    print("Accuracy: %s" % (float(num_correct) / float(len(X))))
+    optimizer.zero_grad()
+    pos_score = model(Variable(s),Variable(o),Variable(p))
+    neg_score = model(Variable(s),Variable(no),Variable(p))
+    loss = criterion(pos_score,neg_score)
+    loss.backward()
+    optimizer.step()
 
-def Train_TransE(X, Y, vocab_size, n_iter):
+    return loss.item()
+
+def train_transe(data, n_iter):
     print("Start Training!")
-    mlp = FFNN(X, Y, vocab_size)
-    #TODO: initialize optimizer
-    optimizer = optim.Adam(mlp.parameters(), lr=0.01)
+    tensor_spo = torch.LongTensor(data.index)
+    train_dataset = DataLoader(TensorDataset(tensor_spo, torch.zeros(tensor_spo.size(0))), batch_size=1024, shuffle=True, drop_last=True)
     for epoch in range(n_iter):
         total_loss = 0.0
-        for i in range(len(X)):
-            x = X[i]
-            y_onehot = torch.zeros(2)
-            y_onehot[int(Y[i])] = 1
-            mlp.zero_grad()
-            probs = mlp.forward(x)
-            #print(probs,y_onehot)
-            loss = torch.neg(torch.log(probs)).dot(y_onehot)
+        for batch_id, (spo, _) in enumerate(train_dataset):
+            loss = transe_epoch(spo)
+            print(batch_id,loss)
             total_loss += loss
-            
-            loss.backward()
-            optimizer.step()
-            #TODO: compute gradients, do parameter update, compute loss.
         print(f"loss on epoch {epoch} = {total_loss}")
-    return mlp
+    return
 
 if __name__ == "__main__":
-    train = IMDBdata("%s/train" % sys.argv[1])
-    train.vocab.Lock()
-    dev  = IMDBdata("%s/dev" % sys.argv[1], vocab=train.vocab)
-    test  = IMDBdata("%s/test" % sys.argv[1], vocab=train.vocab)
-    
-    mlp = Train_FFNN(train.XwordList, (train.Y + 1.0) / 2.0, train.vocab.GetVocabSize(), int(sys.argv[2]))
-    Eval_FFNN(dev.XwordList, (dev.Y + 1.0) / 2.0, mlp)
-    Eval_FFNN(test.XwordList, (test.Y + 1.0) / 2.0, mlp)    
+    data = input_transe()
+    model = TransE(data)
+    optimizer = optim.Adam(model.parameters())
+    zero = torch.FloatTensor([0.0])
+    train_transe(data,10)
+    torch.save(model,'./transE.model')
