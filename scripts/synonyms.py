@@ -6,3 +6,7 @@ class Syn():
     def GetSyn(self,word):
         #TODO
         return
+
+if __name__ == "__main__":
+    syn = Syn()
+    print(syn.GetSyn('good'))
