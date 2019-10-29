@@ -5,7 +5,7 @@ class Syn():
     
     def GetSyn(self,word):
         #TODO
-        return
+        return [word]
 
 if __name__ == "__main__":
     syn = Syn()
