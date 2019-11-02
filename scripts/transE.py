@@ -18,13 +18,15 @@ class TransE(nn.Module):
         self.ent_embedding = nn.Embedding(len(data.ent_dic),DIM_EMB)
         self.rel_embedding = nn.Embedding(len(data.rel_dic),DIM_EMB)
         self.embeddings = [self.ent_embedding, self.rel_embedding]
+        self.initialize_embeddings()
+        self.cuda(0)
 
     def normalize_embeddings(self):
         for e in self.embeddings:
             e.weight.data.renorm(p=2,dim=0,maxnorm=1)
     
-    def intialize_embeddings(self):
-        r = 6/np.sqrt(self.entity_dimensions)
+    def initialize_embeddings(self):
+        r = 6/np.sqrt(self.dim)
         for e in self.embeddings:
             e.weight.data.uniform_(-r, r)
         self.normalize_embeddings()
@@ -62,8 +64,8 @@ def transe_epoch(spo):
 
 def train_transe(data, n_iter):
     print("Start Training!")
-    tensor_spo = torch.LongTensor(data.index).cuda(x)
-    train_dataset = DataLoader(TensorDataset(tensor_spo, torch.zeros(tensor_spo.size(0))), batch_size=1024, shuffle=True, drop_last=True)
+    tensor_spo = torch.LongTensor(data.index).cuda(0)
+    train_dataset = DataLoader(TensorDataset(tensor_spo, torch.zeros(tensor_spo.size(0))), batch_size=2048, shuffle=True, drop_last=True)
     for epoch in range(n_iter):
         total_loss = 0.0
         for batch_id, (spo, _) in enumerate(train_dataset):
@@ -76,11 +78,9 @@ def train_transe(data, n_iter):
 def eval(data):
     emb = []
     c = 0
-    entities = model.ent_embedding(torch.LongTensor(range(model.num_ent))).detach().numpy()
-    relations = model.rel_embedding(torch.LongTensor(range(model.num_rel))).detach().numpy()
+    entities = model.ent_embedding(torch.LongTensor(range(model.num_ent)).cuda(0)).cpu().detach().numpy()
+    relations = model.rel_embedding(torch.LongTensor(range(model.num_rel)).cuda(0)).cpu().detach().numpy()
     for i in data.index[:10000].astype(int):
-        if c%1000==0:
-            print(c)
         t = []
         t.append(entities[i[0]])
         t.append(entities[i[1]])
@@ -95,8 +95,9 @@ if __name__ == "__main__":
     model = TransE(data)
     optimizer = optim.Adam(model.parameters())
     zero = torch.FloatTensor([0.0]).cuda(0)
-    train_transe(data,50)
-    torch.save(model,'./transE.model')
-    #model = torch.load('./transE.model')
-    #eval(data)
+    #train_transe(data,50)
+    #torch.save(model,'./transE.model')
+    model = torch.load('./transE.model')
+    #model.nerwork.cpu()
+    eval(data)
     #print(model.ent_embedding(torch.LongTensor([1])))
