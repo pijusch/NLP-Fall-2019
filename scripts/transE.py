@@ -35,16 +35,16 @@ class TransE(nn.Module):
         sub = self.ent_embedding(subjects)
         obj = self.ent_embedding(objects)
         rel = self.rel_embedding(relations)
-        score = sub+rel-obj
-        score = torch.mul(score,score)
-        score = torch.sum(score,-1)
+        score = torch.sum((sub+rel-obj)**2,-1)
+        #score = torch.mul(score,score)
+        #score = torch.sum(score,-1)
         return score.view(-1,1)
 
 def transe_epoch(spo):
     s, o, p = torch.chunk(spo, 3, dim=1)
     no = torch.LongTensor(np.random.randint(0, model.num_ent, o.size(0))).view(-1,1).cuda(0)
     ns = torch.LongTensor(np.random.randint(0, model.num_ent, s.size(0))).view(-1,1).cuda(0)
-    criterion = lambda pos, neg: torch.sum(torch.max(Variable(zero), 1.0 - pos + neg))
+    criterion = lambda pos, neg: torch.sum(torch.max(Variable(zero), 1 + pos - neg))
     
     optimizer.zero_grad()
     pos_score = model(Variable(s),Variable(o),Variable(p))
@@ -64,7 +64,7 @@ def transe_epoch(spo):
 
 def train_transe(data, n_iter):
     print("Start Training!")
-    tensor_spo = torch.LongTensor(data.index).cuda(0)
+    tensor_spo = torch.LongTensor(data.train).cuda(0)
     train_dataset = DataLoader(TensorDataset(tensor_spo, torch.zeros(tensor_spo.size(0))), batch_size=2048, shuffle=True, drop_last=True)
     for epoch in range(n_iter):
         total_loss = 0.0
@@ -80,14 +80,14 @@ def eval(data):
     c = 0
     entities = model.ent_embedding(torch.LongTensor(range(model.num_ent)).cuda(0)).cpu().detach().numpy()
     relations = model.rel_embedding(torch.LongTensor(range(model.num_rel)).cuda(0)).cpu().detach().numpy()
-    for i in data.index[:10000].astype(int):
+    for i in data.test.astype(int):
         t = []
         t.append(entities[i[0]])
         t.append(entities[i[1]])
         t.append(relations[i[2]])
         emb.append(t)
         c+=1
-    he = HitsEval(emb,data.index[:10000].astype(int),entities,relations)
+    he = HitsEval(emb,data.test.astype(int),entities,relations)
     print(he.relations())
 
 if __name__ == "__main__":
