@@ -9,6 +9,7 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader, TensorDataset
 from input_X import input_transe
 from hits_eval import HitsEval
+import pickle
 
 class TransE(nn.Module):
     def __init__(self, data, DIM_EMB=100, DIM_LSTM=100):
@@ -23,7 +24,7 @@ class TransE(nn.Module):
         self.rel_embedding = nn.Embedding(len(data.rel_dic)+1,DIM_EMB)
         self.embeddings = [self.ent_embedding, self.rel_embedding]
         self.initialize_embeddings()
-        self.cuda(0)
+        #self.cuda(0)
 
     def normalize_embeddings(self):
         for e in self.embeddings:
@@ -76,7 +77,7 @@ def transe_epoch(spo):
 
 def train_transe(data, n_iter):
     print("Start Training!")
-    tensor_spo = torch.LongTensor(data.test),cuda(0)
+    tensor_spo = torch.LongTensor(data.test)
     train_dataset = DataLoader(TensorDataset(tensor_spo, torch.zeros(tensor_spo.size(0))), batch_size=batch_n, shuffle=True, drop_last=True)
     for epoch in range(n_iter):
         total_loss = 0.0
@@ -103,8 +104,8 @@ def eval(data):
     print(he.relations())
 
 def neg_gen():
-    ns = torch.LongTensor(np.array(random.sample(data.train,batch_n))[:,0]).cuda(0)
-    no = torch.LongTensor(np.array(random.sample(data.train,batch_n))[:,1]).cuda(0)
+    ns = torch.LongTensor(np.array(random.sample(data.train,batch_n))[:,0])
+    no = torch.LongTensor(np.array(random.sample(data.train,batch_n))[:,1])
     return [ns,no]
 
 if __name__ == "__main__":
@@ -112,10 +113,22 @@ if __name__ == "__main__":
     data = input_transe()
     model = TransE(data)
     optimizer = optim.Adam(model.parameters())
-    zero = torch.FloatTensor([0.0]).cuda(0)
-    train_transe(data,50)
-    torch.save(model,'./transE.model')
-    #model = torch.load('./transE.model')
+    zero = torch.FloatTensor([0.0])
+    #train_transe(data,10)
+    #torch.save(model,'./transE.model')
+    model = torch.load('./transE.model')
+    subjects, objects, relations = torch.chunk(torch.LongTensor(data.valid), 3, dim=1)
+    sub = model.ent_embedding(subjects)
+    obj = model.ent_embedding(objects)
+    rel = model.rel_embedding(relations)
+    sub, _ = model.sub_lstm(sub.squeeze(1))
+    obj, _ = model.obj_lstm(obj.squeeze(1))
+    rel, _ = model.rel_lstm(rel.squeeze(1))
+    sub = torch.mean(sub,1)
+    obj = torch.mean(obj,1)
+    rel = torch.mean(rel,1)
+    with open('test_X.pkl','wb') as f:
+        pickle.dump([sub.detach().numpy(),obj.detach().numpy(),rel.detach().numpy()],f)
     #model.nerwork.cpu()
     #eval(data)
     #print(model.ent_embedding(torch.LongTensor([1])))
