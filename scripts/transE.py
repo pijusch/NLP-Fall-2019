@@ -47,8 +47,8 @@ def transe_epoch(spo):
     criterion = lambda pos, neg: torch.sum(torch.max(Variable(zero), 1 + pos - neg))
     
     optimizer.zero_grad()
-    pos_score = model(Variable(ns),Variable(o),Variable(p))
-    neg_score = model(Variable(s),Variable(o),Variable(p))
+    pos_score = model(Variable(s),Variable(o),Variable(p))
+    neg_score = model(Variable(ns),Variable(o),Variable(p))
     loss = criterion(pos_score,neg_score)
     loss.backward()
     optimizer.step()
@@ -65,7 +65,7 @@ def transe_epoch(spo):
 def train_transe(data, n_iter):
     print("Start Training!")
     tensor_spo = torch.LongTensor(data.train).cuda(0)
-    train_dataset = DataLoader(TensorDataset(tensor_spo, torch.zeros(tensor_spo.size(0))), batch_size=4196, shuffle=True, drop_last=True)
+    train_dataset = DataLoader(TensorDataset(tensor_spo, torch.zeros(tensor_spo.size(0))), batch_size=512, shuffle=True, drop_last=True)
     for epoch in range(n_iter):
         total_loss = 0.0
         for batch_id, (spo, _) in enumerate(train_dataset):
@@ -95,9 +95,9 @@ if __name__ == "__main__":
     model = TransE(data)
     optimizer = optim.Adam(model.parameters())
     zero = torch.FloatTensor([0.0]).cuda(0)
-    #train_transe(data,50)
-    #torch.save(model,'./transE.model')
-    model = torch.load('./transE.model')
+    train_transe(data,50)
+    torch.save(model,'./transE.model')
+    #model = torch.load('./transE.model')
     #model.nerwork.cpu()
     eval(data)
     #print(model.ent_embedding(torch.LongTensor([1])))

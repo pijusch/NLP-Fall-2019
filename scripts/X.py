@@ -59,8 +59,8 @@ def transe_epoch(spo):
     criterion = lambda pos, neg: torch.sum(torch.max(Variable(zero), 1 + pos - neg))
     
     optimizer.zero_grad()
-    pos_score = model(Variable(ns),Variable(o),Variable(p))
-    neg_score = model(Variable(s),Variable(o),Variable(p))
+    pos_score = model(Variable(s),Variable(o),Variable(p))
+    neg_score = model(Variable(ns),Variable(o),Variable(p))
     loss = criterion(pos_score,neg_score)
     #loss = torch.sum(pos_score)
     loss.backward()

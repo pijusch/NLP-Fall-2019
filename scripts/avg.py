@@ -59,8 +59,8 @@ def transe_epoch(spo):
     criterion = lambda pos, neg: torch.sum(torch.max(Variable(zero), 1 + pos - neg))
     
     optimizer.zero_grad()
-    pos_score = model(Variable(ns),Variable(o),Variable(p))
-    neg_score = model(Variable(s),Variable(o),Variable(p))
+    pos_score = model(Variable(s),Variable(o),Variable(p))
+    neg_score = model(Variable(ns),Variable(o),Variable(p))
     loss = criterion(pos_score,neg_score)
     #loss = torch.sum(pos_score)
     loss.backward()
@@ -83,7 +83,7 @@ def train_transe(data, n_iter):
         total_loss = 0.0
         for batch_id, (spo, _) in enumerate(train_dataset):
             loss = transe_epoch(spo)
-            print(batch_id,loss)
+            #print(batch_id,loss)
             total_loss += loss
         print(f"loss on epoch {epoch} = {total_loss}")
     return
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     model = TransE(data)
     optimizer = optim.Adam(model.parameters())
     zero = torch.FloatTensor([0.0]).cuda(0)
-    train_transe(data,10)
+    train_transe(data,50)
     torch.save(model,'./avg.model')
     exit(0)
     model = torch.load('./avg.model')

@@ -8,11 +8,11 @@ def get_labels(dic,x,num):
     re = []
     for i in x.split():
         re.append(dic[i])
-    if len(re)>num:
-        re = re[:num]
-    elif len(re)<num:
-        for i in range(len(re),num):
-            re.append(len(dic))
+    #if len(re)>num:
+    #    re = re[:num]
+    #elif len(re)<num:
+    #    for i in range(len(re),num):
+    #        re.append(len(dic))
     return re
 
 class input_transe:
@@ -49,8 +49,8 @@ class input_transe:
         out = []
         for i in range(len(data)):
             tmp = []
-            tmp.append(get_labels(self.ent_dic,data['0'].iloc[i],4))
-            tmp.append(get_labels(self.ent_dic,data['1'].iloc[i],4))
+            tmp.append(get_labels(self.ent_dic,data['0'].iloc[i],3))
+            tmp.append(get_labels(self.ent_dic,data['1'].iloc[i],3))
             tmp.append(get_labels(self.rel_dic,data['2'].iloc[i],3))
             out.append(tmp)
         n = len(out)
