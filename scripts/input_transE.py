@@ -15,8 +15,8 @@ class input_transe:
         self.input()
     
     def input(self):
-        if 'input.pkl' in os.listdir():
-            with open('input.pkl','rb') as f:
+        if 'transEinput.pkl' in os.listdir():
+            with open('transEinput.pkl','rb') as f:
                 temp = pickle.load(f)
                 self.train = temp[0]
                 self.test = temp[1]
@@ -58,5 +58,4 @@ class input_transe:
     
 if __name__ == '__main__':
     n = input_transe()
-    print(n.train)
-    print(n.ent_dic[n.ent_dic[n.train[0][0]]])
+    print(n.train[0])

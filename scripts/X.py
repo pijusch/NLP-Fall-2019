@@ -128,7 +128,7 @@ if __name__ == "__main__":
     obj = torch.mean(obj,1)
     rel = torch.mean(rel,1)
     with open('test_X.pkl','wb') as f:
-        pickle.dump([sub.detach().numpy(),obj.detach().numpy(),rel.detach().numpy()],f)
+          pickle.dump([sub.detach().numpy(),obj.detach().numpy(),rel.detach().numpy()],f)
     #model.nerwork.cpu()
     #eval(data)
     #print(model.ent_embedding(torch.LongTensor([1])))
