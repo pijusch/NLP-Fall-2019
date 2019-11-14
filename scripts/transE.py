@@ -75,6 +75,46 @@ def train_transe(data, n_iter):
         print(f"loss on epoch {epoch} = {total_loss}")
     return
 
+def hitsatk_transe(spo, k):
+
+    total = 0.0
+    # for i in range(0, tmodel.batch_size, 1):
+    s, p, o = torch.chunk(spo, 3, dim=1)
+    s = s.repeat(1, model.num_entities).view(-1, 1)
+    p = p.repeat(1, model.num_entities).view(-1, 1)
+    e = entities.repeat(batch_size_valid).view(-1,1)
+
+    # print (s.size(), p.size(), entities.size())
+    output = model(Variable(s), Variable(p), Variable(e))
+    output = output.view(-1, entities.size(0))
+    # print output.size()
+
+    # torch.cat(scores)
+    hits = torch.nonzero((o == torch.topk(output, k, dim=-1)[1].data).view(-1))
+    if len(hits.size()) > 0:
+        total += float(hits.size(0)) / o.size(0)
+    return total
+
+def run_transe_validation(data):
+
+    tensor_spo = torch.LongTensor(data.valid).cuda(0)
+    valid_dataset = DataLoader(TensorDataset(tensor_spo, torch.zeros(tensor_spo.size(0))), batch_size=512, shuffle=True, drop_last=True)
+    hits1 = []
+    hits10 = []
+    hits100 = []
+
+    for batch_id, (spo, _) in enumerate(valid_dataset):
+
+        print ("Validation batch ", batch_id)
+
+        hits1 += [hitsatk_transe(spo, 1)]
+        hits10 += [hitsatk_transe(spo, 10)]
+        hits100 += [hitsatk_transe(spo, 100)]
+
+    print( "Validation hits@1: %f" % (float(sum(hits1)) / len(hits1)))
+    print( "Validation hits@10: %f" % (float(sum(hits10)) / len(hits10)))
+    print( "Validation hits@100: %f" % (float(sum(hits100)) / len(hits100)))
+'''
 def eval(data):
     emb = []
     c = 0
@@ -89,7 +129,7 @@ def eval(data):
         c+=1
     he = HitsEval(emb,data.astype(int),entities,relations)
     print(he.relations())
-
+'''
 if __name__ == "__main__":
     data = input_transe()
     model = TransE(data)
@@ -98,6 +138,7 @@ if __name__ == "__main__":
     #train_transe(data,40)
     #torch.save(model,'./transE.model')
     model = torch.load('./transE.model')
+    run_transe_validation(data)
     #model.nerwork.cpu()
-    eval(data.test)
+    #eval(data.test)
     #print(model.ent_embedding(torch.LongTensor([1])))
