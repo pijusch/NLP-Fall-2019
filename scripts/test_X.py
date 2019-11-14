@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from hits_eval import HitsEval
 
-with open('test_X.pkl','rb') as f:
+with open('test_flatten.pkl','rb') as f:
     a = pickle.load(f)
 
 a = np.array(a)
@@ -12,11 +12,11 @@ print(sum((a[0][0]+a[2][0]-a[1][0])**2))
 print(sum(c))
 
 
-exit(0)
 b = pd.read_csv('../data/total.csv',sep='\t')
 num = len(b)
 
-b = b.iloc[int(0.8*num):int(0.9*num)]
+b = b.iloc[int(0.8*num):int(num*0.9)]
+#b = b.iloc[:100000]
 
 ent = list(set(list(b['0'])+list(b['1'])))
 rel = list(set(b['2']))

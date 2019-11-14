@@ -45,7 +45,7 @@ class input_transe:
         self.train = out[0:int(n*0.8)]
         self.test = out[int(n*0.8):int(n*0.9)]
         self.valid = out[int(n*0.9):]
-        with open('input.pkl','wb') as f:
+        with open('transEinput.pkl','wb') as f:
             pickle.dump([self.train,self.test,self.valid,self.rel_dic,self.ent_dic],f)
         
 

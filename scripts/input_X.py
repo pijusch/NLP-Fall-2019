@@ -8,11 +8,11 @@ def get_labels(dic,x,num):
     re = []
     for i in x.split():
         re.append(dic[i])
-    #if len(re)>num:
-    #    re = re[:num]
-    #elif len(re)<num:
-    #    for i in range(len(re),num):
-    #        re.append(len(dic))
+    if len(re)>num:
+        re = re[:num]
+    elif len(re)<num:
+        for i in range(len(re),num):
+            re.append(len(dic))
     return re
 
 class input_transe:

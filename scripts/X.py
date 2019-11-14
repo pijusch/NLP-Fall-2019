@@ -109,15 +109,15 @@ def neg_gen():
     return [ns,no]
 
 if __name__ == "__main__":
-    batch_n = 4196
+    batch_n = 1024
     data = input_transe()
     model = TransE(data)
     optimizer = optim.Adam(model.parameters())
     zero = torch.FloatTensor([0.0])
-    #train_transe(data,10)
-    #torch.save(model,'./transE.model')
-    model = torch.load('./transE.model')
-    subjects, objects, relations = torch.chunk(torch.LongTensor(data.valid), 3, dim=1)
+    #train_transe(data,3)
+    #torch.save(model,'./X.model')
+    model = torch.load('./X.model')
+    subjects, objects, relations = torch.chunk(torch.LongTensor(data.test), 3, dim=1)
     sub = model.ent_embedding(subjects)
     obj = model.ent_embedding(objects)
     rel = model.rel_embedding(relations)
@@ -127,6 +127,7 @@ if __name__ == "__main__":
     sub = torch.mean(sub,1)
     obj = torch.mean(obj,1)
     rel = torch.mean(rel,1)
+    print(torch.sum(torch.sum((sub+rel-obj)**2,-1)))
     with open('test_X.pkl','wb') as f:
           pickle.dump([sub.detach().numpy(),obj.detach().numpy(),rel.detach().numpy()],f)
     #model.nerwork.cpu()

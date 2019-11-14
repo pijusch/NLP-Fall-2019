@@ -80,14 +80,14 @@ def eval(data):
     c = 0
     entities = model.ent_embedding(torch.LongTensor(range(model.num_ent)).cuda(0)).cpu().detach().numpy()
     relations = model.rel_embedding(torch.LongTensor(range(model.num_rel)).cuda(0)).cpu().detach().numpy()
-    for i in data.train.astype(int):
+    for i in data.astype(int):
         t = []
         t.append(entities[i[0]])
         t.append(entities[i[1]])
         t.append(relations[i[2]])
         emb.append(t)
         c+=1
-    he = HitsEval(emb,data.train.astype(int),entities,relations)
+    he = HitsEval(emb,data.astype(int),entities,relations)
     print(he.relations())
 
 if __name__ == "__main__":
@@ -95,9 +95,9 @@ if __name__ == "__main__":
     model = TransE(data)
     optimizer = optim.Adam(model.parameters())
     zero = torch.FloatTensor([0.0]).cuda(0)
-    train_transe(data,50)
-    torch.save(model,'./transE.model')
-    #model = torch.load('./transE.model')
+    #train_transe(data,40)
+    #torch.save(model,'./transE.model')
+    model = torch.load('./transE.model')
     #model.nerwork.cpu()
-    eval(data)
+    eval(data.test)
     #print(model.ent_embedding(torch.LongTensor([1])))

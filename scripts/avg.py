@@ -91,8 +91,8 @@ def train_transe(data, n_iter):
 def eval(data):
     emb = []
     c = 0
-    entities = model.ent_embedding(torch.LongTensor(range(model.num_ent+1))).detach().numpy()
-    relations = model.rel_embedding(torch.LongTensor(range(model.num_rel+1))).detach().numpy()
+    entities = model.ent_embedding(torch.LongTensor(range(model.num_ent+1)).cuda(0)).cpu().detach().numpy()
+    relations = model.rel_embedding(torch.LongTensor(range(model.num_rel+1)).cuda(0)).cpu().detach().numpy()
     for i in np.array(data.test).astype(int):
         t = []
         t.append(entities[i[0]])
@@ -114,11 +114,11 @@ if __name__ == "__main__":
     model = TransE(data)
     optimizer = optim.Adam(model.parameters())
     zero = torch.FloatTensor([0.0]).cuda(0)
-    train_transe(data,50)
-    torch.save(model,'./avg.model')
-    exit(0)
+    #train_transe(data,50)
+    #torch.save(model,'./avg.model')
+    #exit(0)
     model = torch.load('./avg.model')
-    subjects, objects, relations = torch.chunk(torch.LongTensor(data.valid), 3, dim=1)
+    subjects, objects, relations = torch.chunk(torch.LongTensor(data.valid).cuda(0), 3, dim=1)
     sub = model.ent_embedding(subjects).squeeze(1)
     obj = model.ent_embedding(objects).squeeze(1)
     rel = model.rel_embedding(relations).squeeze(1)
@@ -128,8 +128,9 @@ if __name__ == "__main__":
     sub = torch.mean(sub,1)
     obj = torch.mean(obj,1)
     rel = torch.mean(rel,1)
-    with open('test_X.pkl','wb') as f:
-        pickle.dump([sub.detach().numpy(),obj.detach().numpy(),rel.detach().numpy()],f)
+    print(torch.sum(torch.sum((sub+rel-obj)**2,-1)))
+    with open('valid_avg.pkl','wb') as f:
+        pickle.dump([sub.cpu().detach().numpy(),obj.cpu().detach().numpy(),rel.cpu().detach().numpy()],f)
     #model.nerwork.cpu()
-    eval(data)
+    #eval(data)
     #print(model.ent_embedding(torch.LongTensor([1])))
