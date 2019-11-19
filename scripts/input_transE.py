@@ -58,4 +58,4 @@ class input_transe:
     
 if __name__ == '__main__':
     n = input_transe()
-    print(n.train[0])
+    print(len(n.rel_dic))
