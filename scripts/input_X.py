@@ -24,6 +24,8 @@ class input_transe:
         self.train = []
         self.test = []
         self.valid = []
+        self.ents = []
+        self.rels = []
         self.input()
     
     def input(self):
@@ -35,8 +37,12 @@ class input_transe:
                 self.valid = temp[2]
                 self.rel_dic = temp[3]
                 self.ent_dic = temp[4]
+                self.ents = temp[5]
+                self.rels = temp[6]
             return
         data = pd.read_csv('../data/total.csv',sep='\t')
+        full_entities = list(set(list(data['0'])+list(data['1'])))
+        full_relations = list(set(data['2']))
         
         for i in range(len(self.ent_rel[0])):
             self.ent_dic[i] = self.ent_rel[0][i]
@@ -53,12 +59,19 @@ class input_transe:
             tmp.append(get_labels(self.ent_dic,data['1'].iloc[i],3))
             tmp.append(get_labels(self.rel_dic,data['2'].iloc[i],3))
             out.append(tmp)
+
+        for i in range(len(full_entities)):
+            self.ents.append(get_labels(self.ent_dic,full_entities[i],3))
+        
+        for i in range(len(full_relations)):
+            self.rels.append(get_labels(self.rel_dic,full_relations[i],3))
+
         n = len(out)
         self.train = out[0:int(n*0.8)]
         self.test = out[int(n*0.8):int(n*0.9)]
         self.valid = out[int(n*0.9):]
         with open('Xinput.pkl','wb') as f:
-            pickle.dump([self.train,self.test,self.valid,self.rel_dic,self.ent_dic],f)
+            pickle.dump([self.train,self.test,self.valid,self.rel_dic,self.ent_dic,self.ents,self.rels],f)
         
 
 
@@ -70,4 +83,5 @@ class input_transe:
     
 if __name__ == '__main__':
     n = input_transe()
-    print(n.train[0])
+    print(n.ent_dic[0])
+    print(len(n.rel_dic))

@@ -1,6 +1,7 @@
 import pandas as pd 
 import numpy as np
 import pickle
+import torch
 
 class HitsEval():
     def __init__(self,embeddings,data,ent_dic,rel_dic):
@@ -14,8 +15,8 @@ class HitsEval():
             self.ent_block.append(self.ent_dict[i])
         for i in range(self.rel_num):
             self.rel_block.append(self.rel_dict[i])
-        self.ent_block = np.array(self.ent_block)
-        self.rel_block = np.array(self.rel_block)
+        self.ent_block = torch.stack(self.ent_block)
+        self.rel_block = torch.stack(self.rel_block)
         self.embed = embeddings
         self.data = data
         return
@@ -72,8 +73,11 @@ class HitsEval():
             if i%1000==0:
                 print(i)
             tmp = (self.ent_dict[self.data[i][0]] + self.rel_block - self.ent_dict[self.data[i][1]])**2
-            tmp = np.sum(tmp,axis=1)
-            idx  = np.where(np.argsort(tmp)==self.data[i][2])[0][0]
+            tmp = torch.sum(tmp,dim=0).detach().numpy()
+            #tmp = np.sum(tmp,axis=1)
+            idx  = np.where(np.argsort(tmp)==self.data[i][2])
+            print(idx)
+            idx = idx[0][0]
             imr += (1/(idx+1))
             if idx == 0:
                 hits1+=1

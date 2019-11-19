@@ -4,9 +4,12 @@ import pandas as pd
 from hits_eval import HitsEval
 
 class test():
-    def __init__(self,b,a):
-        ent = list(set(list(b['0'])+list(b['1'])))
-        rel = list(set(b['2']))
+    def __init__(self,b,a,total):
+        total = total.iloc[:1000]
+        ent = list(set(list(total['0'])+list(total['1'])))
+        rel = list(set(total['2']))
+
+
 
         ent_dic = dict()
         rel_dic = dict()
@@ -22,11 +25,11 @@ class test():
         ent_emb = dict()
         rel_emb = dict()
 
-        indices = np.ndarray((b.shape[0],b.shape[1]))
-        for i in range(len(b)):
-            indices[i][0] = ent_dic[b.iloc[i]['0']]
-            indices[i][1] = ent_dic[b.iloc[i]['1']]
-            indices[i][2] = rel_dic[b.iloc[i]['2']]
+        indices = np.ndarray((total.shape[0],total.shape[1]))
+        for i in range(len(total)):
+            indices[i][0] = ent_dic[total.iloc[i]['0']]
+            indices[i][1] = ent_dic[total.iloc[i]['1']]
+            indices[i][2] = rel_dic[total.iloc[i]['2']]
             ent_emb[indices[i][0]] = a[0][i,:]
             ent_emb[indices[i][1]] = a[1][i,:]
             rel_emb[indices[i][2]] = a[2][i,:]

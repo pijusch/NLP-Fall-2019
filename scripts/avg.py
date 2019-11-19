@@ -17,8 +17,8 @@ class TransE(nn.Module):
     def __init__(self, data, DIM_EMB=100, DIM_LSTM=100):
         super(TransE, self).__init__()
         self.dim = DIM_EMB
-        self.num_ent = len(data.ent_dic)
-        self.num_rel = len(data.rel_dic)
+        self.num_ent = int(len(data.ent_dic)/2)
+        self.num_rel = int(len(data.rel_dic)/2)
         #self.sub_lstm = nn.LSTM(DIM_LSTM,DIM_EMB)
         #self.obj_lstm = nn.LSTM(DIM_LSTM,DIM_EMB)
         #self.rel_lstm = nn.LSTM(DIM_LSTM,DIM_EMB)
@@ -91,7 +91,7 @@ def train_transe(data, n_iter):
     return
 
 def eval(data):
-    subjects, objects, relations = torch.chunk(torch.LongTensor(data), 3, dim=1)
+    subjects, objects, relations = torch.chunk(torch.LongTensor(np.concatenate((data.train,data.test,data.valid))), 3, dim=1)
     sub = model.ent_embedding(subjects).squeeze(1)
     obj = model.ent_embedding(objects).squeeze(1)
     rel = model.rel_embedding(relations).squeeze(1)
@@ -100,7 +100,7 @@ def eval(data):
     rel = torch.mean(rel,1)
     num = len(total)
     out = np.array([sub,obj,rel])
-    evaluation = test(total.iloc[int(0.8*num):int(0.9*num)],out )
+    evaluation = test(total.iloc[int(0.8*num):int(0.9*num)],out,total )
     print(evaluation.relations())
 
 def neg_gen():
@@ -108,18 +108,61 @@ def neg_gen():
     no = torch.LongTensor(np.array(random.sample(data.train,batch_n))[:,1])#.cuda(0)
     return [ns,no]
 
+def hitsatk_transe(spo, k):
+
+    total = 0.0
+    s, o, p = torch.chunk(spo, 3, dim=1)
+
+    
+    s_ = s.repeat(len(all_relations),1,1)
+    o_ = o.repeat(len(all_relations),1,1)
+    e = torch.LongTensor(all_relations).unsqueeze(1).repeat(valid_batch,1,1)
+    output = model(Variable(s_), Variable(o_), Variable(e))
+    output = output.view(-1, len(all_relations))
+    p = model(Variable(s), Variable(o), Variable(p))
+    
+
+    hits = torch.nonzero((p == torch.topk(output, k, dim=-1, largest=False)[0].data).view(-1))
+    if len(hits.size()) > 0:
+        total += float(hits.size(0)) / o.size(0)
+    return total
+
+def run_transe_validation(data):
+
+    tensor_spo = torch.LongTensor(data)
+    valid_dataset = DataLoader(TensorDataset(tensor_spo, torch.zeros(tensor_spo.size(0))), batch_size=valid_batch, shuffle=True, drop_last=True)
+    hits1 = []
+    hits10 = []
+    hits100 = []
+
+    for batch_id, (spo, _) in enumerate(valid_dataset):
+
+        print ("Validation batch ", batch_id)
+
+        hits1 += [hitsatk_transe(spo, 1)]
+        hits10 += [hitsatk_transe(spo, 10)]
+        hits100 += [hitsatk_transe(spo, 100)]
+
+    print( "Validation hits@1: %f" % (float(sum(hits1)) / len(hits1)))
+    print( "Validation hits@10: %f" % (float(sum(hits10)) / len(hits10)))
+    print( "Validation hits@100: %f" % (float(sum(hits100)) / len(hits100)))
+    return [(float(sum(hits1)) / len(hits1)),(float(sum(hits10)) / len(hits10)),(float(sum(hits100)) / len(hits100))]
+
 if __name__ == "__main__":
     batch_n = 1024
+    valid_batch = 1024
     total = pd.read_csv('../data/total.csv',sep='\t')
     data = input_transe()
     model = TransE(data)
     optimizer = optim.Adam(model.parameters())
     zero = torch.FloatTensor([0.0])#.cuda(0)
-    #train_transe(data,50)
+    #train_transe(data,1)
     #torch.save(model,'./avg.model')
     #exit(0)
-    model = torch.load('./avg.model')
-    eval(data.valid)
+    #model = torch.load('./avg.model')
+    all_relations = data.rels
+    run_transe_validation(data.valid)
+    #eval(data)
     #model.nerwork.cpu()
     #eval(data)
     #print(model.ent_embedding(torch.LongTensor([1])))
