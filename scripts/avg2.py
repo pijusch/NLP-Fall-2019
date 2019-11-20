@@ -25,7 +25,7 @@ class TransE(nn.Module):
         self.rel_embedding = nn.Embedding(len(data.rel_dic)+1,DIM_EMB)
         self.embeddings = [self.ent_embedding, self.rel_embedding]
         self.initialize_embeddings()
-        self.cuda(0)
+        #self.cuda(0)
 
     def normalize_embeddings(self):
         for e in self.embeddings:
@@ -44,9 +44,9 @@ class TransE(nn.Module):
         #sub, _ = self.sub_lstm(sub.squeeze(1))
         #obj, _ = self.obj_lstm(obj.squeeze(1))
         #rel, _ = self.rel_lstm(rel.squeeze(1))
-        sub = torch.mean(sub,1)
-        obj = torch.mean(obj,1)
-        rel = torch.mean(rel,1)
+        sub = self.linear(torch.flatten(sub,1))
+        obj = self.linear(torch.flatten(obj,1))
+        rel = self.linear(torch.flatten(rel,1))
         score = torch.sum((sub+rel-obj)**2,-1)
         #score = torch.mul(score,score)
         #score = torch.sum(score,-1)
@@ -78,7 +78,7 @@ def transe_epoch(spo):
 
 def train_transe(data, n_iter):
     print("Start Training!")
-    tensor_spo = torch.LongTensor(data.train).cuda(0)
+    tensor_spo = torch.LongTensor(data.train)#cuda(0)
     train_dataset = DataLoader(TensorDataset(tensor_spo, torch.zeros(tensor_spo.size(0))), batch_size=batch_n, shuffle=True, drop_last=True)
     for epoch in range(n_iter):
         total_loss = 0.0
@@ -105,8 +105,8 @@ def eval(data):
     print(he.relations())
 
 def neg_gen():
-    ns = torch.LongTensor(np.array(random.sample(data.train,batch_n))[:,0]).cuda(0)
-    no = torch.LongTensor(np.array(random.sample(data.train,batch_n))[:,1]).cuda(0)
+    ns = torch.LongTensor(np.array(random.sample(data.train,batch_n))[:,0])#.cuda(0)
+    no = torch.LongTensor(np.array(random.sample(data.train,batch_n))[:,1])#.cuda(0)
     return [ns,no]
 
 if __name__ == "__main__":
@@ -114,10 +114,10 @@ if __name__ == "__main__":
     data = input_transe()
     model = TransE(data)
     optimizer = optim.Adam(model.parameters())
-    zero = torch.FloatTensor([0.0]).cuda(0)
-    #train_transe(data,50)
-    #torch.save(model,'./avg.model')
-    #exit(0)
+    zero = torch.FloatTensor([0.0])#.cuda(0)
+    train_transe(data,50)
+    torch.save(model,'./avg.model')
+    exit(0)
     model = torch.load('./avg.model')
     subjects, objects, relations = torch.chunk(torch.LongTensor(data.valid).cuda(0), 3, dim=1)
     sub = model.ent_embedding(subjects).squeeze(1)

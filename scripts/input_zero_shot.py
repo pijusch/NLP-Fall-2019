@@ -69,10 +69,10 @@ class input_transe:
             out.append(tmp)
 
         for i in range(len(full_entities)):
-            self.ents.append(get_labels(self.ent_dic, self.w2v_entities,full_entities[i],3))
+            self.ents.append(get_labels(self.ent_dic, w2v_entities,full_entities[i],3))
         
-        for i in range(len(full_relations)):
-            self.rels.append(get_labels(self.rel_dic, self.w2v_relations,full_relations[i],3))
+        for i in range(len(full_relations)):        
+            self.rels.append(get_labels(self.rel_dic, w2v_relations,full_relations[i],3))
 
         n = len(out)
         self.train = out[0:int(n*0.8)]

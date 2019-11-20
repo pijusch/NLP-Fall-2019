@@ -7,7 +7,6 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torch.utils.data import DataLoader, TensorDataset
 from input_transE import input_transe
-from hits_eval import HitsEval
 
 class TransE(nn.Module):
     def __init__(self, data, DIM_EMB=100):
@@ -64,6 +63,7 @@ def transe_epoch(spo):
 
 def train_transe(data, n_iter):
     print("Start Training!")
+    prev = -10
     tensor_spo = torch.LongTensor(data.train).cuda(0)
     train_dataset = DataLoader(TensorDataset(tensor_spo, torch.zeros(tensor_spo.size(0))), batch_size=train_batch, shuffle=True, drop_last=True)
     for epoch in range(n_iter):
@@ -73,21 +73,28 @@ def train_transe(data, n_iter):
             #print(batch_id,loss)
             total_loss += loss
         print(f"loss on epoch {epoch} = {total_loss}")
+        if epoch%10==0:
+            hits = run_transe_validation(data.valid)
+            if hits[2]>prev:
+                prev = hits[2]
+                torch.save(model,'./transE.model')
+
     return
 
 def hitsatk_transe(spo, k):
 
     total = 0.0
     s, o, p = torch.chunk(spo, 3, dim=1)
-    s = s.repeat(1, model.num_ent).view(-1, 1)
-    p = p.repeat(1, model.num_ent).view(-1, 1)
-    e = torch.LongTensor(np.arange(model.num_ent)).cuda(0).repeat(valid_batch).view(-1,1)
-    output = model(Variable(s), Variable(e), Variable(p))
-    output = output.view(-1, model.num_ent)
+    s = s.repeat(1, model.num_rel).view(-1, 1)
+    o = o.repeat(1, model.num_rel).view(-1, 1)
+    e = torch.LongTensor(np.arange(model.num_rel)).cuda(0).repeat(valid_batch).view(-1,1)
+    #e = torch.LongTensor(np.arange(model.num_rel)).repeat(valid_batch).view(-1,1)
+    output = model(Variable(s), Variable(o), Variable(e))
+    output = output.view(-1, model.num_rel)
 
-    hits = torch.nonzero((o == torch.topk(output, k, dim=-1, largest=False)[1].data).view(-1))
+    hits = torch.nonzero((p == torch.topk(output, k, dim=-1, largest=False)[1].data).view(-1))
     if len(hits.size()) > 0:
-        total += float(hits.size(0)) / o.size(0)
+        total += float(hits.size(0)) / p.size(0)
     return total
 
 def run_transe_validation(data):
@@ -95,35 +102,22 @@ def run_transe_validation(data):
     tensor_spo = torch.LongTensor(data).cuda(0)
     valid_dataset = DataLoader(TensorDataset(tensor_spo, torch.zeros(tensor_spo.size(0))), batch_size=valid_batch, shuffle=True, drop_last=True)
     hits1 = []
+    hits5 = []
     hits10 = []
-    hits100 = []
 
     for batch_id, (spo, _) in enumerate(valid_dataset):
 
         print ("Validation batch ", batch_id)
 
         hits1 += [hitsatk_transe(spo, 1)]
+        hits5 += [hitsatk_transe(spo, 5)]
         hits10 += [hitsatk_transe(spo, 10)]
-        hits100 += [hitsatk_transe(spo, 100)]
 
     print( "Validation hits@1: %f" % (float(sum(hits1)) / len(hits1)))
-    print( "Validation hits@10: %f" % (float(sum(hits10)) / len(hits10)))
-    print( "Validation hits@100: %f" % (float(sum(hits100)) / len(hits100)))
+    print( "Validation hits@10: %f" % (float(sum(hits5)) / len(hits5)))
+    print( "Validation hits@100: %f" % (float(sum(hits10)) / len(hits10)))
+    return [(float(sum(hits1)) / len(hits1)),(float(sum(hits5)) / len(hits5)),(float(sum(hits10)) / len(hits10))]
 
-def eval(data):
-    emb = []
-    c = 0
-    entities = model.ent_embedding(torch.LongTensor(range(model.num_ent)).cuda(0)).cpu().detach().numpy()
-    relations = model.rel_embedding(torch.LongTensor(range(model.num_rel)).cuda(0)).cpu().detach().numpy()
-    for i in data.astype(int):
-        t = []
-        t.append(entities[i[0]])
-        t.append(entities[i[1]])
-        t.append(relations[i[2]])
-        emb.append(t)
-        c+=1
-    he = HitsEval(emb,data.astype(int),entities,relations)
-    print(he.relations())
 
 if __name__ == "__main__":
     data = input_transe()
@@ -132,10 +126,9 @@ if __name__ == "__main__":
     zero = torch.FloatTensor([0.0]).cuda(0)
     train_batch = 512
     valid_batch = 64
-    #train_transe(data,40)
+    train_transe(data,100)
     #torch.save(model,'./transE.model')
     model = torch.load('./transE.model')
-    run_transe_validation(data.valid)
+    #run_transe_validation(data.valid)
     #model.nerwork.cpu()
-    eval(data.test)
     #print(model.ent_embedding(torch.LongTensor([1])))
