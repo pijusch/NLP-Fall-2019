@@ -17,8 +17,7 @@ def get_labels(dic,x,num):
 
 class input_transe:
     def __init__(self):
-        with open('../data/entities_relations.pkl','rb') as f:
-            self.ent_rel = pickle.load(f)
+        self.ent_rel = []
         self.ent_dic = dict()
         self.rel_dic = dict()
         self.train = []
@@ -40,6 +39,9 @@ class input_transe:
                 self.ents = temp[5]
                 self.rels = temp[6]
             return
+        
+        with open('../data/entities_relations.pkl','rb') as f:
+            self.ent_rel = pickle.load(f)
         data = pd.read_csv('../data/total.csv',sep='\t')
         full_entities = list(set(list(data['0'])+list(data['1'])))
         full_relations = list(set(data['2']))
